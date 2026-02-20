@@ -37,9 +37,21 @@ jobs:
         dir models
       timeout-minutes: 10
     
+    - name: Verify files exist
+      run: |
+        echo "Checking files..."
+        dir
+        if not exist build_exe.spec (
+          echo "ERROR: build_exe.spec not found!"
+          exit 1
+        )
+        echo "build_exe.spec found"
+        
     - name: Build EXE with spec file
       run: |
+        echo "Starting build..."
         pyinstaller build_exe.spec --clean --noconfirm
+        echo "Build completed"
       timeout-minutes: 30
     
     - name: Verify build
