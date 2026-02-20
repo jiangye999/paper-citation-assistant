@@ -47,6 +47,5 @@ models/*
 .DS_Store
 Thumbs.db
 
-# PyInstaller
-*.spec
+# PyInstaller (keep build_exe.spec)
 build_exe/

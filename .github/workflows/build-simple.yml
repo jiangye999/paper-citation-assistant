@@ -21,6 +21,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
+        pip install PyQt5
         pip install -r requirements.txt
     
     - name: Download AI Models
@@ -33,39 +34,31 @@ jobs:
         echo "Models downloaded"
         dir models
     
-    - name: Build EXE (Direct Command)
+    - name: Build EXE (Desktop Version)
       shell: bash
       run: |
-        echo "Starting build..."
-        pip list | grep -i stream
+        echo "Starting desktop build..."
         
-        pyinstaller run_app.py \
+        pyinstaller desktop_app.py \
           --name "论文反插助手" \
           --onedir \
           --console \
-          --add-data "app.py:." \
           --add-data "src:src" \
           --add-data "config:config" \
           --add-data "models:models" \
-          --collect-all streamlit \
+          --collect-all PyQt5 \
           --collect-all sentence_transformers \
-          --collect-all watchdog \
-          --collect-all tornado \
           --hidden-import src.literature.db_manager \
           --hidden-import src.draft.analyzer \
+          --hidden-import src.draft.context_understanding \
           --hidden-import src.citation.matcher \
           --hidden-import src.citation.ai_matcher \
           --hidden-import src.citation.search_engine \
           --hidden-import src.citation.rag_retriever \
           --hidden-import src.citation.vector_search \
           --hidden-import src.citation.format_learner \
-          --hidden-import src.utils.config \
-          --hidden-import src.draft.context_understanding \
-          --hidden-import streamlit.runtime.scriptrunner.magic_funcs \
-          --hidden-import streamlit.runtime.scriptrunner \
-          --hidden-import streamlit.web.cli \
-          --hidden-import streamlit.web.bootstrap
-        echo "Build completed"
+          --hidden-import src.utils.config
+        echo "Desktop build completed"
       timeout-minutes: 40
     
     - name: Verify build
