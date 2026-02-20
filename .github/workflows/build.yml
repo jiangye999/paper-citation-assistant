@@ -1,0 +1,65 @@
+name: Build and Release Windows EXE
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    
+    - name: Download AI Models
+      run: |
+        echo Downloading AI models...
+        mkdir models
+        set HF_ENDPOINT=https://hf-mirror.com
+        python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2', cache_folder='models')"
+        python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('cross-encoder/ms-marco-MiniLM-L-6-v2', cache_folder='models/cross-encoder_ms-marco-MiniLM-L-6-v2')"
+        echo Models downloaded successfully
+        dir models
+      timeout-minutes: 10
+    
+    - name: Build EXE with spec file
+      run: |
+        pyinstaller build_exe.spec --clean --noconfirm
+      timeout-minutes: 30
+    
+    - name: Verify build
+      run: |
+        echo Build completed
+        dir dist\论文反插助手 || echo Warning: dist directory not found
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: 论文反插助手-Windows-Full
+        path: dist/论文反插助手
+        retention-days: 30
+    
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/论文反插助手/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,70 @@
+# API Configuration
+api:
+  provider: "deepseek"  # "openai", "anthropic" or "deepseek"
+  api_key: ""  # 在Web界面中输入
+  base_url: "https://api.deepseek.com/v1"  # DeepSeek API地址
+  model: "deepseek-chat"  # deepseek-chat 或 deepseek-reasoner
+  temperature: 0.3
+  max_tokens: 4096
+
+# 备选API配置（如果DeepSeek不可用）
+backup_api:
+  provider: "openai"
+  api_key: ""
+  base_url: ""
+  model: "gpt-4o-mini"
+
+# 引用插入配置
+citation:
+  style: "author-year"
+  max_citations_per_sentence: 3
+  min_relevance_score: 0.3
+  citation_format: "({author}, {year})"
+  
+# 文献评分权重配置（总和应为100）
+scoring_weights:
+  relevance: 50        # AI语义相关度权重 (%)
+  recency: 30          # 文献新颖度权重 (%)
+  citation_count: 20   # 引用次数（经典度）权重 (%)
+  
+  # 年份评分标准（用于recency计算）
+  recent_years_threshold: 5    # 近N年视为新文献
+  mid_years_threshold: 10      # N年内视为中期文献
+  
+# 句子分析配置
+sentence_analysis:
+  min_sentence_length: 10
+  max_sentence_length: 500
+  extract_keywords: true
+  max_keywords: 5
+
+# 文献搜索配置
+literature_search:
+  default_limit: 10
+  year_range: 10
+  prioritize_highly_cited: true
+  citation_weight: 0.3
+  recency_weight: 0.2
+  relevance_weight: 0.5
+
+# 路径配置
+paths:
+  data_dir: "data"
+  output_dir: "output"
+  uploads_dir: "uploads"
+  database_file: "data/literature.db"
+
+# 输出配置
+output:
+  formats:
+    - "word"
+    - "markdown"
+    - "latex"
+  include_bibliography: true
+  bibliography_style: "apa"
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/citation_inserter.log"

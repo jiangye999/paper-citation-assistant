@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+data/*.db
+
+# Uploads and outputs (keep directories but not files)
+uploads/*
+!uploads/.gitkeep
+output/*
+!output/.gitkeep
+
+# Models (exclude - too large for git)
+models/*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PyInstaller
+*.spec
+build_exe/
