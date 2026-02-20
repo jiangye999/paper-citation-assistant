@@ -1,0 +1,64 @@
+name: Build Windows EXE (Simple)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    
+    - name: Download AI Models
+      run: |
+        echo "Downloading AI models..."
+        mkdir models
+        set HF_ENDPOINT=https://hf-mirror.com
+        python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2', cache_folder='models')"
+        python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('cross-encoder/ms-marco-MiniLM-L-6-v2', cache_folder='models/cross-encoder_ms-marco-MiniLM-L-6-v2')"
+        echo "Models downloaded"
+        dir models
+    
+    - name: Build EXE (Direct Command)
+      run: |
+        echo "Starting build..."
+        pyinstaller run_app.py --name "论文反插助手" --onedir --console ^
+          --add-data "app.py;." ^
+          --add-data "src;src" ^
+          --add-data "config;config" ^
+          --add-data "models;models" ^
+          --collect-all streamlit ^
+          --collect-all sentence_transformers ^
+          --hidden-import src.literature.db_manager ^
+          --hidden-import src.draft.analyzer ^
+          --hidden-import src.citation.matcher ^
+          --hidden-import src.citation.ai_matcher
+        echo "Build completed"
+      timeout-minutes: 40
+    
+    - name: Verify build
+      run: |
+        echo "Build output:"
+        dir dist
+        dir "dist\论文反插助手" || echo "Warning: Directory not found"
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: 论文反插助手-Windows
+        path: dist/论文反插助手
+        retention-days: 30
