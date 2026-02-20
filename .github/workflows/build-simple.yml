@@ -34,18 +34,22 @@ jobs:
         dir models
     
     - name: Build EXE (Direct Command)
+      shell: bash
       run: |
         echo "Starting build..."
-        pyinstaller run_app.py --name "论文反插助手" --onedir --console ^
-          --add-data "app.py;." ^
-          --add-data "src;src" ^
-          --add-data "config;config" ^
-          --add-data "models;models" ^
-          --collect-all streamlit ^
-          --collect-all sentence_transformers ^
-          --hidden-import src.literature.db_manager ^
-          --hidden-import src.draft.analyzer ^
-          --hidden-import src.citation.matcher ^
+        pyinstaller run_app.py \
+          --name "论文反插助手" \
+          --onedir \
+          --console \
+          --add-data "app.py:." \
+          --add-data "src:src" \
+          --add-data "config:config" \
+          --add-data "models:models" \
+          --collect-all streamlit \
+          --collect-all sentence_transformers \
+          --hidden-import src.literature.db_manager \
+          --hidden-import src.draft.analyzer \
+          --hidden-import src.citation.matcher \
           --hidden-import src.citation.ai_matcher
         echo "Build completed"
       timeout-minutes: 40
