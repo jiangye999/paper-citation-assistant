@@ -37,6 +37,8 @@ jobs:
       shell: bash
       run: |
         echo "Starting build..."
+        pip list | grep -i stream
+        
         pyinstaller run_app.py \
           --name "论文反插助手" \
           --onedir \
@@ -47,6 +49,8 @@ jobs:
           --add-data "models:models" \
           --collect-all streamlit \
           --collect-all sentence_transformers \
+          --collect-all watchdog \
+          --collect-all tornado \
           --hidden-import src.literature.db_manager \
           --hidden-import src.draft.analyzer \
           --hidden-import src.citation.matcher \
@@ -57,11 +61,10 @@ jobs:
           --hidden-import src.citation.format_learner \
           --hidden-import src.utils.config \
           --hidden-import src.draft.context_understanding \
-          --hidden-import watchdog \
-          --hidden-import watchdog.observers \
-          --hidden-import tornado \
-          --hidden-import tornado.web \
-          --hidden-import tornado.ioloop
+          --hidden-import streamlit.runtime.scriptrunner.magic_funcs \
+          --hidden-import streamlit.runtime.scriptrunner \
+          --hidden-import streamlit.web.cli \
+          --hidden-import streamlit.web.bootstrap
         echo "Build completed"
       timeout-minutes: 40
     
