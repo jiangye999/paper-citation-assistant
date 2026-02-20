@@ -50,7 +50,18 @@ jobs:
           --hidden-import src.literature.db_manager \
           --hidden-import src.draft.analyzer \
           --hidden-import src.citation.matcher \
-          --hidden-import src.citation.ai_matcher
+          --hidden-import src.citation.ai_matcher \
+          --hidden-import src.citation.search_engine \
+          --hidden-import src.citation.rag_retriever \
+          --hidden-import src.citation.vector_search \
+          --hidden-import src.citation.format_learner \
+          --hidden-import src.utils.config \
+          --hidden-import src.draft.context_understanding \
+          --hidden-import watchdog \
+          --hidden-import watchdog.observers \
+          --hidden-import tornado \
+          --hidden-import tornado.web \
+          --hidden-import tornado.ioloop
         echo "Build completed"
       timeout-minutes: 40
     
