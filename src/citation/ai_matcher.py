@@ -272,7 +272,10 @@ class AICitationMatcher:
         # 按综合分数排序
         top_semantic_matches.sort(key=lambda x: x.composite_score, reverse=True)
 
-        return top_semantic_matches[: self.max_citations]
+        # 5. 动态决定引用数量（根据分数分布）
+        final_matches = self._dynamic_select_citations(top_semantic_matches)
+
+        return final_matches
 
     def _get_candidates(
         self,
@@ -760,3 +763,50 @@ Return ONLY valid JSON. No extra text.""",
         # 100次引用 = 0.4分，1000次 = 0.7分，10000次 = 1.0分
         score = min(1.0, math.log10(paper.cited_by) / 4)
         return score
+
+    def _dynamic_select_citations(
+        self, matches: List[AIMatchResult]
+    ) -> List[AIMatchResult]:
+        """动态决定引用数量
+
+        策略：
+        - 如果高分文献多（>=0.8），引用2-3篇
+        - 如果中等分数多（0.6-0.8），引用1-2篇
+        - 如果都低（<0.6），引用0-1篇或不引用
+        - 最多不超过 max_citations
+        """
+        if not matches:
+            return []
+
+        high_score = [m for m in matches if m.composite_score >= 0.8]
+        medium_score = [m for m in matches if 0.6 <= m.composite_score < 0.8]
+        low_score = [m for m in matches if m.composite_score < 0.6]
+
+        # 动态决定引用数量
+        if len(high_score) >= 2:
+            # 高分文献多，引用2-3篇
+            count = min(3, len(high_score))
+            selected = high_score[:count]
+        elif len(high_score) == 1:
+            # 只有1篇高分，再看中等分数量
+            if len(medium_score) >= 1:
+                count = min(2, 1 + len(medium_score))
+                selected = high_score[:1] + medium_score[: count - 1]
+            else:
+                selected = high_score[:1]
+        elif len(medium_score) >= 2:
+            # 没有高分，但中等分多，引用1-2篇
+            count = min(2, len(medium_score))
+            selected = medium_score[:count]
+        elif len(medium_score) == 1:
+            # 只有1篇中等分
+            selected = medium_score[:1]
+        else:
+            # 都太低，不引用或只引1篇最好的
+            if matches[0].composite_score >= 0.5:
+                selected = matches[:1]
+            else:
+                selected = []
+
+        # 最终限制不超过 max_citations
+        return selected[: self.max_citations]
