@@ -78,7 +78,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: 参考文献反插助手-Windows-完整版
+        name: PaperCitation-Helper-Windows
         path: |
           dist/参考文献反插助手/**
           !dist/参考文献反插助手/**/*.pyc
