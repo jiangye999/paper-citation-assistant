@@ -425,27 +425,56 @@ class MainWindow(QMainWindow):
             self.statusbar.showMessage("就绪 - 请先导入文献库")
 
 
-class Sidebar(QGroupBox):
+class Sidebar(QWidget):
     def __init__(self, main_window):
-        super().__init__("⚙️ 配置面板")
+        super().__init__()
         self.main_window = main_window
-        self.setStyleSheet("background-color: white;")
+        self.setStyleSheet("background-color: #f8f9fa;")
         self.init_ui()
 
     def init_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setSpacing(15)
+        # 主布局
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
+
+        # 标题
+        title_label = QLabel("⚙️ 配置面板")
+        title_label.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        title_label.setStyleSheet("color: #333; padding-bottom: 10px;")
+        main_layout.addWidget(title_label)
+
+        # 创建滚动区域
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QScrollArea.NoFrame)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll.setStyleSheet(
+            "QScrollArea { border: none; background: transparent; }"
+        )
+
+        # 创建内容容器
+        container = QWidget()
+        container.setStyleSheet("background-color: transparent;")
+        layout = QVBoxLayout(container)
+        layout.setSpacing(12)
+        layout.setContentsMargins(5, 5, 5, 5)
 
         # API配置
         api_group = QGroupBox("🔑 API配置")
+        api_group.setStyleSheet(
+            "QGroupBox { font-weight: bold; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }"
+        )
         api_layout = QFormLayout()
-        api_layout.setSpacing(10)
+        api_layout.setSpacing(8)
+        api_layout.setContentsMargins(10, 15, 10, 10)
 
         self.api_provider = QComboBox()
         self.api_provider.addItems(["deepseek", "openai", "anthropic"])
         self.api_provider.setCurrentText(self.main_window.config["api_provider"])
         self.api_provider.currentTextChanged.connect(self.on_provider_changed)
-        api_layout.addRow("API提供商:", self.api_provider)
+        api_layout.addRow("提供商:", self.api_provider)
 
         self.api_key = QLineEdit()
         self.api_key.setEchoMode(QLineEdit.Password)
@@ -458,11 +487,12 @@ class Sidebar(QGroupBox):
         self.model.setCurrentText(self.main_window.config["model"])
         api_layout.addRow("模型:", self.model)
 
-        # API状态
+        # API状态 - 增大padding和行高确保文字显示完整
         self.api_status = QLabel("⚠️ 请输入API密钥")
         self.api_status.setStyleSheet(
-            "color: #856404; padding: 8px; background: #fff3cd; border-radius: 4px;"
+            "color: #856404; padding: 12px; background: #fff3cd; border-radius: 6px; font-size: 13px; min-height: 20px;"
         )
+        self.api_status.setWordWrap(True)
         api_layout.addRow(self.api_status)
 
         api_group.setLayout(api_layout)
@@ -574,9 +604,26 @@ class Sidebar(QGroupBox):
 
         layout.addStretch()
 
+        # 设置滚动区域的内容
+        scroll.setWidget(container)
+
+        # 将滚动区域添加到侧边栏
+        sidebar_layout = QVBoxLayout(self)
+        sidebar_layout.addWidget(scroll)
+        sidebar_layout.setContentsMargins(5, 5, 5, 5)
+
         # 检查API状态
         self.check_api_status()
-        self.api_key.textChanged.connect(self.check_api_status)
+        self.api_key.textChanged.connect(self.on_api_key_changed)
+
+    def on_api_key_changed(self):
+        """API密钥改变时更新状态并同步到主窗口"""
+        self.check_api_status()
+        # 实时同步到主窗口配置
+        self.main_window.config["api_key"] = self.api_key.text()
+        # 通知匹配标签页更新状态
+        if hasattr(self.main_window, "tab_match"):
+            self.main_window.tab_match.update_api_status()
 
     def update_model_list(self):
         provider = self.api_provider.currentText()
@@ -1137,6 +1184,10 @@ class CitationMatchingTab(QWidget):
         super().showEvent(event)
         self.check_prerequisites()
 
+    def update_api_status(self):
+        """当API配置改变时更新状态显示"""
+        self.check_prerequisites()
+
     def check_prerequisites(self):
         issues = []
 
@@ -1369,17 +1420,189 @@ class ResultsReviewTab(QWidget):
             2: "Text Files (*.txt)",
         }
 
-        file, _ = QFileDialog.getSaveFileName(
+        file_path, _ = QFileDialog.getSaveFileName(
             self, "保存文档", "", file_filter[self.export_format.currentIndex()]
         )
 
-        if not file:
+        if not file_path:
             return
 
-        # 这里应该实现实际的导出逻辑
-        QMessageBox.information(
-            self, "导出功能", "导出功能需要进一步完善\n建议参考原app.py中的导出逻辑实现"
-        )
+        try:
+            results = self.main_window.citation_results
+            config = self.main_window.config
+
+            # 重建段落结构
+            paragraph_map = {}
+            for result in results:
+                para_idx = result.sentence.paragraph_index
+                if para_idx not in paragraph_map:
+                    paragraph_map[para_idx] = []
+                paragraph_map[para_idx].append(result)
+
+            # 获取引用风格
+            citation_style = config.get("citation_style", "author-year")
+            ref_numbering = (
+                "numbered" if citation_style == "numbered" else "author_year"
+            )
+
+            # 准备导出内容
+            full_text = ""
+            bibliography = ""
+
+            # 创建 matcher 用于插入引用
+            from src.citation.ai_matcher import AICitationMatcher, AIAPIManager
+
+            api_manager = None
+            if config.get("api_key"):
+                api_manager = AIAPIManager(
+                    api_key=config["api_key"],
+                    base_url=config.get("api_base_url", "https://api.deepseek.com/v1"),
+                    model=config.get("model", "deepseek-chat"),
+                    provider=config.get("api_provider", "deepseek"),
+                )
+
+            matcher = None
+            if self.main_window.db_manager and api_manager:
+                matcher = AICitationMatcher(
+                    db_manager=self.main_window.db_manager,
+                    api_manager=api_manager,
+                    citation_style=citation_style,
+                )
+
+            # 按段落组织文本
+            for para_idx in sorted(paragraph_map.keys()):
+                para_sentences = paragraph_map[para_idx]
+                para_text_parts = []
+
+                for result in para_sentences:
+                    if (
+                        result.citations
+                        and not result.sentence.has_citation
+                        and matcher
+                    ):
+                        new_text = matcher.insert_citations_into_text(
+                            result.sentence, result.citations
+                        )
+                        para_text_parts.append(new_text)
+                    else:
+                        para_text_parts.append(result.sentence.text)
+
+                full_text += " ".join(para_text_parts) + "\n\n"
+
+            # 生成参考文献
+            if matcher:
+                used_papers = {}
+                for swc in results:
+                    for citation in swc.citations:
+                        paper_id = citation.paper.id
+                        if paper_id not in used_papers:
+                            used_papers[paper_id] = citation.paper
+
+                if used_papers:
+                    sorted_papers = sorted(
+                        used_papers.values(),
+                        key=lambda p: (
+                            p.authors.split(",")[0].strip().split()[-1]
+                            if p.authors
+                            else ""
+                        ).lower(),
+                    )
+
+                    # 格式化参考文献
+                    formatted_refs = []
+                    for paper in sorted_papers:
+                        authors = paper.authors.replace(";", ", ")
+                        ref = f"{authors} ({paper.year}). {paper.title}. {paper.journal}, {paper.volume}({paper.issue}), {paper.pages}."
+                        formatted_refs.append(ref)
+
+                    # 根据序号格式添加
+                    bibliography = "# References\n\n"
+                    for i, ref in enumerate(formatted_refs, 1):
+                        if ref_numbering == "numbered":
+                            bibliography += f"[{i}] {ref}\n\n"
+                        else:
+                            bibliography += f"{ref}\n\n"
+                else:
+                    bibliography = "# References\n\n暂无引用文献"
+
+            full_text += "\n" + bibliography.strip()
+
+            # 根据格式导出
+            format_idx = self.export_format.currentIndex()
+
+            if format_idx == 2:  # 纯文本
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(full_text)
+                QMessageBox.information(
+                    self, "导出成功", f"✅ 文本文件已保存:\n{file_path}"
+                )
+
+            elif format_idx == 1:  # Markdown
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(full_text)
+                QMessageBox.information(
+                    self, "导出成功", f"✅ Markdown文件已保存:\n{file_path}"
+                )
+
+            else:  # Word文档
+                from docx import Document
+                from docx.shared import Pt
+                from docx.oxml.ns import qn
+
+                doc = Document()
+
+                def set_times_new_roman(run):
+                    run.font.name = "Times New Roman"
+                    run._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
+                    run.font.size = Pt(12)
+
+                # 添加内容（保持段落结构）
+                for para_idx in sorted(paragraph_map.keys()):
+                    para_sentences = paragraph_map[para_idx]
+                    para_text_parts = []
+
+                    for result in para_sentences:
+                        if (
+                            result.citations
+                            and not result.sentence.has_citation
+                            and matcher
+                        ):
+                            new_text = matcher.insert_citations_into_text(
+                                result.sentence, result.citations
+                            )
+                            para_text_parts.append(new_text)
+                        else:
+                            para_text_parts.append(result.sentence.text)
+
+                    paragraph_text = " ".join(para_text_parts)
+                    p = doc.add_paragraph(paragraph_text)
+
+                    for run in p.runs:
+                        set_times_new_roman(run)
+
+                # 添加参考文献
+                if used_papers:
+                    doc.add_heading("References", level=1)
+
+                    for i, ref in enumerate(formatted_refs, 1):
+                        if ref_numbering == "numbered":
+                            p = doc.add_paragraph(f"[{i}] {ref}")
+                        else:
+                            p = doc.add_paragraph(ref)
+
+                        for run in p.runs:
+                            set_times_new_roman(run)
+
+                doc.save(file_path)
+                QMessageBox.information(
+                    self, "导出成功", f"✅ Word文档已保存:\n{file_path}"
+                )
+
+        except Exception as e:
+            QMessageBox.critical(self, "导出失败", f"导出过程中出错:\n{str(e)}")
+            import traceback
+
+            traceback.print_exc()
 
 
 def main():
