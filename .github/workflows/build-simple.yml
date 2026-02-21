@@ -62,17 +62,18 @@ jobs:
       timeout-minutes: 40
     
     - name: Verify build
+      shell: bash
       run: |
         echo "Build output:"
-        dir dist
-        echo "Contents of dist folder:"
-        dir "dist\" /s
-        if exist "dist\参考文献反插助手" (
+        ls -la dist/
+        echo "Checking for executable:"
+        if [ -d "dist/参考文献反插助手" ]; then
           echo "Found 参考文献反插助手 folder"
-        ) else (
-          echo "Warning: 参考文献反插助手 folder not found, checking alternative names..."
-          dir dist\
-        )
+          ls -la "dist/参考文献反插助手/"
+        else
+          echo "Warning: folder not found"
+          ls -la dist/
+        fi
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
