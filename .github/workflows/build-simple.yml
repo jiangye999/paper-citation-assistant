@@ -40,7 +40,7 @@ jobs:
         echo "Starting desktop build..."
         
         pyinstaller desktop_app.py \
-          --name "论文反插助手" \
+          --name "参考文献反插助手" \
           --onedir \
           --console \
           --add-data "src:src" \
@@ -65,11 +65,22 @@ jobs:
       run: |
         echo "Build output:"
         dir dist
-        dir "dist\论文反插助手" || echo "Warning: Directory not found"
+        echo "Contents of dist folder:"
+        dir "dist\" /s
+        if exist "dist\参考文献反插助手" (
+          echo "Found 参考文献反插助手 folder"
+        ) else (
+          echo "Warning: 参考文献反插助手 folder not found, checking alternative names..."
+          dir dist\
+        )
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: 论文反插助手-Windows
-        path: dist/论文反插助手
+        name: 参考文献反插助手-Windows-完整版
+        path: |
+          dist/参考文献反插助手/**
+          !dist/参考文献反插助手/**/*.pyc
+          !dist/参考文献反插助手/**/__pycache__/**
+        if-no-files-found: warn
         retention-days: 30
