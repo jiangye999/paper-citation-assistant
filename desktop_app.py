@@ -290,12 +290,13 @@ class MainWindow(QMainWindow):
             }
             QTabBar::tab {
                 background-color: #e9ecef;
-                padding: 12px 24px;
+                padding: 15px 35px;
                 margin-right: 4px;
                 border-top-left-radius: 8px;
                 border-top-right-radius: 8px;
-                font-size: 13px;
+                font-size: 14px;
                 font-weight: 500;
+                min-width: 120px;
             }
             QTabBar::tab:selected {
                 background-color: white;
@@ -1521,7 +1522,7 @@ class ResultsReviewTab(QWidget):
                         else:
                             bibliography += f"{ref}\n\n"
                 else:
-                    bibliography = "# References\n\n暂无引用文献"
+                    bibliography = "# References\n\n<span style='color: #000000;'>暂无引用文献</span>"
 
             full_text += "\n" + bibliography.strip()
 
@@ -1579,9 +1580,9 @@ class ResultsReviewTab(QWidget):
                         set_times_new_roman(run)
 
                 # 添加参考文献
-                if used_papers:
-                    doc.add_heading("References", level=1)
+                doc.add_heading("References", level=1)
 
+                if used_papers:
                     for i, ref in enumerate(formatted_refs, 1):
                         if ref_numbering == "numbered":
                             p = doc.add_paragraph(f"[{i}] {ref}")
@@ -1590,6 +1591,12 @@ class ResultsReviewTab(QWidget):
 
                         for run in p.runs:
                             set_times_new_roman(run)
+                else:
+                    # 没有引用文献时显示提示
+                    p = doc.add_paragraph("暂无引用文献")
+                    for run in p.runs:
+                        set_times_new_roman(run)
+                        run.font.color.rgb = None  # 使用默认黑色
 
                 doc.save(file_path)
                 QMessageBox.information(
