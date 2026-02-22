@@ -42,7 +42,7 @@ jobs:
         pyinstaller desktop_app.py \
           --name "参考文献反插助手" \
           --onedir \
-          --console \
+          --windowed \
           --add-data "src:src" \
           --add-data "config:config" \
           --add-data "models:models" \
