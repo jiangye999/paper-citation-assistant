@@ -599,7 +599,9 @@ class Sidebar(QWidget):
 
         # 保存按钮
         save_btn = QPushButton("💾 保存所有设置")
-        save_btn.setStyleSheet("padding: 12px; font-size: 14px;")
+        save_btn.setStyleSheet(
+            "padding: 12px; font-size: 14px; color: #000000; background-color: #28a745; font-weight: bold;"
+        )
         save_btn.clicked.connect(self.save_config)
         layout.addWidget(save_btn)
 
