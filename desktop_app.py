@@ -605,12 +605,10 @@ class Sidebar(QWidget):
         layout.addStretch()
 
         # 设置滚动区域的内容
-        scroll.setWidget(container)
+        self.scroll.setWidget(container)
 
-        # 将滚动区域添加到侧边栏
-        sidebar_layout = QVBoxLayout(self)
-        sidebar_layout.addWidget(scroll)
-        sidebar_layout.setContentsMargins(5, 5, 5, 5)
+        # 将滚动区域添加到主布局
+        main_layout.addWidget(self.scroll)
 
         # 检查API状态
         self.check_api_status()
